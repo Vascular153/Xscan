@@ -27,6 +27,24 @@
         </p>
       </div>
 
+      <div class="scan hidden" id="scanView">
+        <p class="scan-target mono" id="scanFile"></p>
+        <p class="scan-percent mono" id="scanPercent">0%</p>
+        <p class="scan-status" id="scanStatus">Идёт проверка</p>
+
+        <ul class="log mono">
+          <li><span class="mark"></span>Загрузка файла</li>
+          <li><span class="mark"></span>Semgrep: поиск уязвимостей</li>
+          <li><span class="mark"></span>Gemini: поиск уязвимостей и оценка опасности</li>
+          <li><span class="mark"></span>Сборка отчёта</li>
+        </ul>
+
+        <div class="scan-actions">
+          <button class="btn hidden" id="reportBtn">Скачать отчёт</button>
+          <button class="btn btn-outline hidden" id="againBtn">Проверить другой код</button>
+        </div>
+      </div>
+
       <div class="stage" id="dropZone">
         <div class="eye" aria-hidden="true">
           <div class="eye-glow"></div>
@@ -104,6 +122,27 @@
             </g>
 
             <circle
+              class="scan-only"
+              cx="140"
+              cy="90"
+              r="50"
+              stroke="rgba(255, 255, 255, 0.1)"
+              stroke-width="2.5"/>
+
+            <circle
+              class="progress-arc scan-only"
+              id="progressArc"
+              cx="140"
+              cy="90"
+              r="50"
+              transform="rotate(-90 140 90)"
+              stroke="#ff2a44"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-dasharray="314.16"
+              stroke-dashoffset="314.16"/>
+
+            <circle
               cx="140"
               cy="90"
               r="32"
@@ -152,6 +191,7 @@
           <button class="btn" id="githubBtn">Проверить</button>
         </div>
         <p class="hint">Репозиторий должен быть публичным. Проверь ссылку перед отправкой.</p>
+        <p class="message" id="linkMessage"></p>
       </div>
 
       <div class="caption">
@@ -162,6 +202,22 @@
             1&nbsp;МБ, архив до 20&nbsp;МБ.
           </p>
         </div>
+
+        <div class="file-row hidden" id="fileRow">
+          <div class="file-text">
+            <p class="file-name mono" id="fileName"></p>
+            <p class="file-size mono" id="fileSize"></p>
+          </div>
+          <button class="btn" id="submitBtn">Проверить</button>
+          <button class="x" id="removeBtn" aria-label="Убрать файл">×</button>
+        </div>
+
+        <p class="message" id="fileMessage"></p>
+        <input
+          type="file"
+          id="fileInput"
+          hidden
+          accept=".zip,.py,.js,.java,.c,.h,.cpp,.hpp,.cs,.go,.php,.rs"/>
       </div>
     </main>
   </body>

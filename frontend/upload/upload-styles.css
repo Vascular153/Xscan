@@ -197,6 +197,52 @@ body {
   text-decoration: underline;
 }
 
+.file-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 10px 10px 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--fill);
+  text-align: left;
+}
+
+.file-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-name {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-size {
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+.x {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.x:hover {
+  background: var(--fill);
+  color: var(--text-white);
+}
+
 .link-form {
   display: flex;
   gap: 8px;
@@ -241,6 +287,20 @@ body {
   margin-top: 10px;
   color: var(--text-dim);
   font-size: 13px;
+}
+
+.message {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  margin-top: 8px;
+  color: #ff6b7d;
+  font-size: 14px;
+}
+
+.message:empty {
+  display: none;
 }
 
 .btn {
@@ -341,6 +401,135 @@ body {
   animation: radar-sweep 2s infinite ease-in-out alternate;
 }
 
+.scan-only {
+  opacity: 0;
+  transition: opacity 0.5s;
+}
+
+.progress-arc {
+  filter: drop-shadow(0 0 3px rgba(255, 42, 68, 0.8));
+}
+
+body.drag .eye-svg,
+.stage.ack .eye-svg {
+  filter: drop-shadow(0 0 48px rgba(255, 42, 68, 0.6));
+}
+
+.stage.ack .pupil-slit {
+  animation: blink-once 0.5s ease-in-out;
+}
+
+body.drag .reticle-spin,
+body.scanning .reticle-spin {
+  animation-duration: 4s;
+}
+
+body.scanning .radar-scan {
+  animation-duration: 0.8s;
+}
+
+body.scanning .scan-only {
+  opacity: 1;
+}
+
+body.scanning .head {
+  display: none;
+}
+
+body.scanning .link,
+body.scanning .caption {
+  visibility: hidden;
+}
+
+body.scanning .stage {
+  background: none;
+  cursor: default;
+  pointer-events: none;
+}
+
+body.scanning .stage::before {
+  opacity: 0;
+}
+
+.scan-target {
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
+.scan-percent {
+  margin: 4px 0 0;
+  font-size: clamp(72px, 9vw, 112px);
+  font-weight: 500;
+  letter-spacing: -0.05em;
+  line-height: 1;
+}
+
+.scan-status {
+  margin-top: 8px;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.log {
+  margin: 32px 0;
+  list-style: none;
+  font-size: 14px;
+}
+
+.log li {
+  display: flex;
+  gap: 14px;
+  padding: 7px 0;
+  color: var(--text-faint);
+  transition: color 0.3s;
+}
+
+.mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 21px;
+  flex-shrink: 0;
+}
+
+.mark::before {
+  display: block;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--text-faint);
+  content: "";
+}
+
+.log li.active {
+  color: var(--text-white);
+}
+
+.log li.active .mark::before {
+  width: 14px;
+  height: 14px;
+  border-radius: 0;
+  background: url("arrow.svg") center / contain no-repeat;
+}
+
+.log li.done {
+  color: #b8b8c0;
+}
+
+.log li.done .mark::before {
+  width: 14px;
+  height: 14px;
+  border-radius: 0;
+  background: url("check.svg") center / contain no-repeat;
+}
+
+.scan-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
 @keyframes lid-open {
   from {
     opacity: 0;
@@ -352,6 +541,13 @@ body {
   from {
     opacity: 0;
     inset: -18px;
+  }
+}
+
+@keyframes blink-once {
+  40%,
+  60% {
+    transform: scaleY(0.08);
   }
 }
 
