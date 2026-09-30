@@ -8,6 +8,10 @@ const fileSize = document.getElementById("fileSize");
 const removeBtn = document.getElementById("removeBtn");
 const submitBtn = document.getElementById("submitBtn");
 const fileMessage = document.getElementById("fileMessage");
+const linkForm = document.getElementById("linkForm");
+const githubInput = document.getElementById("githubInput");
+const githubBtn = document.getElementById("githubBtn");
+const linkMessage = document.getElementById("linkMessage");
 const scanView = document.getElementById("scanView");
 const scanFile = document.getElementById("scanFile");
 const scanPercent = document.getElementById("scanPercent");
@@ -113,6 +117,36 @@ submitBtn.addEventListener("click", function () {
   }
 });
 
+function isGithubUrl(url) {
+  const parts = url.split("/");
+  return url.startsWith("https://github.com/") && parts.length >= 5 && parts[3] && parts[4];
+}
+
+githubInput.addEventListener("input", function () {
+  if (isGithubUrl(githubInput.value.trim())) {
+    linkForm.classList.add("ready");
+  } else {
+    linkForm.classList.remove("ready");
+  }
+  linkMessage.textContent = "";
+});
+
+githubInput.addEventListener("keydown", function (event) {
+  if (event.key === "Enter") {
+    githubBtn.click();
+  }
+});
+
+githubBtn.addEventListener("click", function () {
+  const url = githubInput.value.trim();
+  if (!isGithubUrl(url)) {
+    linkMessage.textContent = "Нужна ссылка вида https://github.com/владелец/репозиторий";
+    return;
+  }
+  const parts = url.split("/");
+  startAnalysis(parts[3] + "/" + parts[4]);
+});
+
 function showProgress(percent) {
   progressArc.style.strokeDashoffset = arcLength - (arcLength * percent) / 100;
   scanPercent.textContent = percent + "%";
@@ -157,4 +191,7 @@ againBtn.addEventListener("click", function () {
   scanView.classList.add("hidden");
   document.body.classList.remove("scanning");
   clearFile();
+  githubInput.value = "";
+  linkForm.classList.remove("ready");
+  linkMessage.textContent = "";
 });
