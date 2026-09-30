@@ -6,9 +6,19 @@ const fileRow = document.getElementById("fileRow");
 const fileName = document.getElementById("fileName");
 const fileSize = document.getElementById("fileSize");
 const removeBtn = document.getElementById("removeBtn");
+const submitBtn = document.getElementById("submitBtn");
 const fileMessage = document.getElementById("fileMessage");
+const scanView = document.getElementById("scanView");
+const scanFile = document.getElementById("scanFile");
+const scanPercent = document.getElementById("scanPercent");
+const scanStatus = document.getElementById("scanStatus");
+const progressArc = document.getElementById("progressArc");
+const againBtn = document.getElementById("againBtn");
+const reportBtn = document.getElementById("reportBtn");
 
+const steps = document.querySelectorAll(".log li");
 const allowedExt = ["py", "js", "java", "c", "h", "cpp", "hpp", "cs", "go", "php", "rs", "zip"];
+const arcLength = 314.16;
 let selectedFile = null;
 
 function blockFileOpen(event) {
@@ -96,3 +106,55 @@ function clearFile() {
 }
 
 removeBtn.addEventListener("click", clearFile);
+
+submitBtn.addEventListener("click", function () {
+  if (selectedFile) {
+    startAnalysis(selectedFile.name);
+  }
+});
+
+function showProgress(percent) {
+  progressArc.style.strokeDashoffset = arcLength - (arcLength * percent) / 100;
+  scanPercent.textContent = percent + "%";
+
+  for (let i = 0; i < steps.length; i++) {
+    if (percent >= (i + 1) * 25) {
+      steps[i].className = "done";
+    } else if (percent >= i * 25) {
+      steps[i].className = "active";
+    } else {
+      steps[i].className = "";
+    }
+  }
+}
+
+function startAnalysis(name) {
+  if (document.body.classList.contains("scanning")) {
+    return;
+  }
+  scanView.classList.remove("hidden");
+  againBtn.classList.add("hidden");
+  reportBtn.classList.add("hidden");
+  document.body.classList.add("scanning");
+  scanFile.textContent = name;
+  scanStatus.textContent = "Идёт проверка";
+
+  let percent = 0;
+  showProgress(percent);
+  const timer = setInterval(function () {
+    percent = percent + 1;
+    showProgress(percent);
+    if (percent === 100) {
+      clearInterval(timer);
+      scanStatus.textContent = "Проверка завершена";
+      againBtn.classList.remove("hidden");
+      reportBtn.classList.remove("hidden");
+    }
+  }, 60);
+}
+
+againBtn.addEventListener("click", function () {
+  scanView.classList.add("hidden");
+  document.body.classList.remove("scanning");
+  clearFile();
+});
