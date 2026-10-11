@@ -24,6 +24,7 @@ const steps = document.querySelectorAll(".log li");
 const allowedExt = ["py", "js", "java", "c", "h", "cpp", "hpp", "cs", "go", "php", "rs", "zip"];
 const arcLength = 314.16;
 let selectedFile = null;
+let report = null;
 
 function blockFileOpen(event) {
   if (event.dataTransfer.types.includes("Files")) {
@@ -118,8 +119,13 @@ submitBtn.addEventListener("click", function () {
 });
 
 function isGithubUrl(url) {
-  const parts = url.split("/");
-  return url.startsWith("https://github.com/") && parts.length >= 5 && parts[3] && parts[4];
+  try {
+    const parsedUrl = new URL(url);
+    const parts = parsedUrl.pathname.split("/").filter(Boolean);
+    return parsedUrl.protocol === "https:" && parsedUrl.hostname === "github.com" && parts.length === 2;
+  } catch {
+    return false;
+  }
 }
 
 githubInput.addEventListener("input", function () {
@@ -137,14 +143,37 @@ githubInput.addEventListener("keydown", function (event) {
   }
 });
 
-githubBtn.addEventListener("click", function () {
+githubBtn.addEventListener("click", async function () {
   const url = githubInput.value.trim();
   if (!isGithubUrl(url)) {
     linkMessage.textContent = "Нужна ссылка вида https://github.com/владелец/репозиторий";
+    linkMessage.classList.remove("success");
     return;
   }
-  const parts = url.split("/");
-  startAnalysis(parts[3] + "/" + parts[4]);
+  githubBtn.disabled = true;
+  githubBtn.textContent = "Проверяем";
+  linkMessage.textContent = "";
+  linkMessage.classList.remove("success");
+  try {
+    const response = await fetch("http://127.0.0.1:8000/api/github/check", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url })
+    });
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.detail || "Не удалось проверить репозиторий");
+    }
+    linkMessage.textContent = result.message;
+    linkMessage.classList.toggle("success", result.exists);
+  } catch (error) {
+    linkMessage.textContent = error.message === "Failed to fetch"
+      ? "Сервер проверки недоступен"
+      : error.message;
+  } finally {
+    githubBtn.disabled = false;
+    githubBtn.textContent = "Проверить";
+  }
 });
 
 function showProgress(percent) {
@@ -172,6 +201,7 @@ function startAnalysis(name) {
   document.body.classList.add("scanning");
   scanFile.textContent = name;
   scanStatus.textContent = "Идёт проверка";
+  report = null;
 
   let percent = 0;
   showProgress(percent);
@@ -181,6 +211,13 @@ function startAnalysis(name) {
     if (percent === 100) {
       clearInterval(timer);
       scanStatus.textContent = "Проверка завершена";
+      report = {
+        target: name,
+        checkedAt: new Date().toISOString(),
+        status: "completed",
+        issues: []
+      };
+      sessionStorage.setItem("xscanReport", JSON.stringify(report));
       againBtn.classList.remove("hidden");
       reportBtn.classList.remove("hidden");
     }
@@ -194,4 +231,10 @@ againBtn.addEventListener("click", function () {
   githubInput.value = "";
   linkForm.classList.remove("ready");
   linkMessage.textContent = "";
+});
+
+reportBtn.addEventListener("click", function () {
+  if (report) {
+    window.location.href = "../report/report.html";
+  }
 });

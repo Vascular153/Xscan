@@ -303,6 +303,15 @@ body {
   display: none;
 }
 
+.message.success {
+  color: #66d19e;
+}
+
+.btn:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
 .btn {
   padding: 12px 22px;
   border: 1px solid var(--red);
