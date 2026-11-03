@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Отчёт — Xscan</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Onest:wght@300;400;600;800&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"/>
+    <link rel="stylesheet" href="report-styles.css"/>
+  </head>
+  <body>
+    <header class="header">
+      <div class="header-inner">
+        <a href="../index.html" class="logo">Xscan</a>
+      </div>
+    </header>
+
+    <main class="page">
+      <div class="head">
+        <p class="eyebrow mono">Результат проверки</p>
+        <h1 class="headline">Отчёт<span class="text-red">.</span></h1>
+        <p class="target mono" id="target"></p>
+      </div>
+
+      <section class="summary">
+        <div class="metric">
+          <span class="metric-value" id="issueCount">0</span>
+          <span class="metric-label">найдено проблем</span>
+        </div>
+        <div class="status">
+          <span class="status-mark"></span>
+          <div>
+            <p class="status-title">Проверка завершена</p>
+            <p class="status-date mono" id="checkedAt"></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="result">
+        <h2>Результаты</h2>
+        <p id="resultText">Уязвимости не найдены.</p>
+        <div id="issuesList" class="issues-list"></div>
+      </section>
+
+      <div class="actions">
+        <button class="btn" id="downloadBtn">Скачать JSON</button>
+        <a class="btn btn-outline" href="../upload/upload.html">Новая проверка</a>
+      </div>
+    </main>
+
+    <script src="report.js"></script>
+  </body>
+</html>

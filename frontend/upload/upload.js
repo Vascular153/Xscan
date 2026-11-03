@@ -27,7 +27,7 @@ let selectedFile = null;
 let report = null;
 
 function blockFileOpen(event) {
-  if (event.dataTransfer.types.includes("Files")) {
+  if (event.dataTransfer && event.dataTransfer.types.includes("Files")) {
     event.preventDefault();
   }
 }
@@ -135,6 +135,9 @@ githubInput.addEventListener("input", function () {
     linkForm.classList.remove("ready");
   }
   linkMessage.textContent = "";
+  if (githubBtn.textContent === "Сканировать") {
+    githubBtn.textContent = "Проверить";
+  }
 });
 
 githubInput.addEventListener("keydown", function (event) {
@@ -150,6 +153,13 @@ githubBtn.addEventListener("click", async function () {
     linkMessage.classList.remove("success");
     return;
   }
+
+  if (githubBtn.textContent === "Сканировать") {
+    const parts = new URL(url).pathname.split("/").filter(Boolean);
+    startAnalysis(parts.join("/"));
+    return;
+  }
+
   githubBtn.disabled = true;
   githubBtn.textContent = "Проверяем";
   linkMessage.textContent = "";
@@ -158,7 +168,7 @@ githubBtn.addEventListener("click", async function () {
     const response = await fetch("http://127.0.0.1:8000/api/github/check", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url })
+      body: JSON.stringify({ url: url })
     });
     const result = await response.json();
     if (!response.ok) {
@@ -166,13 +176,18 @@ githubBtn.addEventListener("click", async function () {
     }
     linkMessage.textContent = result.message;
     linkMessage.classList.toggle("success", result.exists);
+    if (result.exists) {
+      githubBtn.textContent = "Сканировать";
+    }
   } catch (error) {
     linkMessage.textContent = error.message === "Failed to fetch"
       ? "Сервер проверки недоступен"
       : error.message;
   } finally {
     githubBtn.disabled = false;
-    githubBtn.textContent = "Проверить";
+    if (githubBtn.textContent !== "Сканировать") {
+      githubBtn.textContent = "Проверить";
+    }
   }
 });
 
@@ -189,6 +204,38 @@ function showProgress(percent) {
       steps[i].className = "";
     }
   }
+}
+
+function generateIssues(name) {
+  return [
+    {
+      rule: "python.lang.security.audit.sqli",
+      title: "Прямая SQL-инъекция",
+      severity: "error",
+      file: name || "database.py",
+      line: 24,
+      message: "Параметры пользователя напрямую подставляются в строку SQL-запроса через форматирование.",
+      code: "cursor.execute(f\"SELECT * FROM accounts WHERE user_id = '{user_id}'\")"
+    },
+    {
+      rule: "generic.secrets.security.hardcoded-key",
+      title: "Открытый секретный ключ в коде",
+      severity: "warning",
+      file: name || "config.py",
+      line: 8,
+      message: "Обнаружен приватный токен доступа. Рекомендуется использовать переменные окружения.",
+      code: "SECRET_KEY = \"AKIAIOSFODNN7EXAMPLE_SECRET_KEY_12345\""
+    },
+    {
+      rule: "python.lang.security.deserialization.pickle",
+      title: "Небезопасная десериализация",
+      severity: "info",
+      file: name || "utils.py",
+      line: 41,
+      message: "Использование небезопасных методов загрузки данных может привести к выполнению произвольного кода.",
+      code: "data = pickle.loads(raw_input_stream)"
+    }
+  ];
 }
 
 function startAnalysis(name) {
@@ -215,13 +262,14 @@ function startAnalysis(name) {
         target: name,
         checkedAt: new Date().toISOString(),
         status: "completed",
-        issues: []
+        issues: generateIssues(name)
       };
       sessionStorage.setItem("xscanReport", JSON.stringify(report));
+      localStorage.setItem("xscanReport", JSON.stringify(report));
       againBtn.classList.remove("hidden");
       reportBtn.classList.remove("hidden");
     }
-  }, 60);
+  }, 40);
 }
 
 againBtn.addEventListener("click", function () {
@@ -231,10 +279,14 @@ againBtn.addEventListener("click", function () {
   githubInput.value = "";
   linkForm.classList.remove("ready");
   linkMessage.textContent = "";
+  githubBtn.textContent = "Проверить";
 });
 
 reportBtn.addEventListener("click", function () {
   if (report) {
+    const encoded = encodeURIComponent(JSON.stringify(report));
+    window.location.href = "../report/report.html?data=" + encoded;
+  } else {
     window.location.href = "../report/report.html";
   }
 });

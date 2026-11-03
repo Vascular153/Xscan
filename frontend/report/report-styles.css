@@ -1,0 +1,280 @@
+:root {
+  --red: #ff2a44;
+  --yellow: #ffb800;
+  --blue: #3b82f6;
+  --text-white: #fff;
+  --text-muted: #b0b0b8;
+  --text-dim: #8e8e98;
+  --line: rgba(255, 255, 255, 0.1);
+  --fill: rgba(255, 255, 255, 0.04);
+  --font-main: "Onest", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  color-scheme: dark;
+  background: #000;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  min-height: 100vh;
+  background: #000;
+  color: var(--text-white);
+  font: 15px / 1.5 var(--font-main);
+}
+
+.text-red {
+  color: var(--red);
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+.header {
+  height: 72px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  background: rgba(0, 0, 0, 0.75);
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  max-width: 1240px;
+  height: 100%;
+  margin: 0 auto;
+  padding: 0 48px;
+}
+
+.logo {
+  color: var(--text-white);
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.page {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 72px 48px;
+}
+
+.eyebrow,
+.target,
+.status-date {
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+.headline {
+  margin: 8px 0 12px;
+  font-size: clamp(44px, 7vw, 72px);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 48px;
+}
+
+.metric,
+.status,
+.result {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--fill);
+}
+
+.metric {
+  padding: 28px;
+}
+
+.metric-value {
+  display: block;
+  font-size: 48px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.metric-label {
+  color: var(--text-muted);
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 28px;
+}
+
+.status-mark {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--red);
+  box-shadow: 0 0 18px rgba(255, 42, 68, 0.8);
+}
+
+.status-title {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.result {
+  margin-top: 16px;
+  padding: 28px;
+}
+
+.result h2 {
+  margin-bottom: 16px;
+  font-size: 20px;
+}
+
+.result p#resultText {
+  color: var(--text-muted);
+  margin-bottom: 20px;
+}
+
+.issues-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.issue-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 20px;
+}
+
+.issue-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.issue-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-white);
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.badge-error {
+  background: rgba(255, 42, 68, 0.15);
+  color: var(--red);
+  border: 1px solid rgba(255, 42, 68, 0.3);
+}
+
+.badge-warning {
+  background: rgba(255, 184, 0, 0.15);
+  color: var(--yellow);
+  border: 1px solid rgba(255, 184, 0, 0.3);
+}
+
+.badge-info {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--blue);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.issue-location {
+  color: var(--text-dim);
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+
+.issue-desc {
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.issue-code {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 12px;
+  color: #ff8595;
+  font-size: 13px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.btn {
+  display: inline-flex;
+  padding: 12px 22px;
+  border: 1px solid var(--red);
+  border-radius: 10px;
+  background: var(--red);
+  color: var(--text-white);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.btn-outline {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: transparent;
+}
+
+@media (max-width: 640px) {
+  .header-inner,
+  .page {
+    padding-right: 24px;
+    padding-left: 24px;
+  }
+
+  .summary {
+    grid-template-columns: 1fr;
+  }
+
+  .actions {
+    flex-direction: column;
+  }
+
+  .btn {
+    justify-content: center;
+  }
+
+  .issue-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}
