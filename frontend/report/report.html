@@ -39,9 +39,28 @@
         </div>
       </section>
 
+      <section class="levels" id="levels">
+        <div class="level level-error"><span class="level-value" id="countError">0</span><span class="level-label">Высокая</span></div>
+        <div class="level level-warning"><span class="level-value" id="countWarning">0</span><span class="level-label">Средняя</span></div>
+        <div class="level level-info"><span class="level-value" id="countInfo">0</span><span class="level-label">Низкая</span></div>
+      </section>
+
       <section class="result">
         <h2>Результаты</h2>
         <p id="resultText">Уязвимости не найдены.</p>
+        <ul class="notes" id="notes"></ul>
+        <div class="toolbar hidden" id="toolbar">
+          <div class="filters" id="filters">
+            <button class="chip active" data-filter="all">Все</button>
+            <button class="chip" data-filter="error">Высокая</button>
+            <button class="chip" data-filter="warning">Средняя</button>
+            <button class="chip" data-filter="info">Низкая</button>
+          </div>
+          <select class="sort mono" id="sortSelect" aria-label="Сортировка">
+            <option value="severity">По опасности</option>
+            <option value="file">По файлу</option>
+          </select>
+        </div>
         <div id="issuesList" class="issues-list"></div>
       </section>
 
