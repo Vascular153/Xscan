@@ -114,7 +114,7 @@ removeBtn.addEventListener("click", clearFile);
 
 submitBtn.addEventListener("click", function () {
   if (selectedFile) {
-    startAnalysis(selectedFile.name);
+    startAnalysis(selectedFile.name, scanFileRequest(selectedFile));
   }
 });
 
@@ -156,7 +156,7 @@ githubBtn.addEventListener("click", async function () {
 
   if (githubBtn.textContent === "Сканировать") {
     const parts = new URL(url).pathname.split("/").filter(Boolean);
-    startAnalysis(parts.join("/"));
+    startAnalysis(parts.join("/"), scanGithubRequest(url));
     return;
   }
 
@@ -165,7 +165,7 @@ githubBtn.addEventListener("click", async function () {
   linkMessage.textContent = "";
   linkMessage.classList.remove("success");
   try {
-    const response = await fetch("http://127.0.0.1:8000/api/github/check", {
+    const response = await fetch(apiBase + "/api/github/check", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ url: url })
@@ -206,39 +206,86 @@ function showProgress(percent) {
   }
 }
 
-function generateIssues(name) {
-  return [
-    {
-      rule: "python.lang.security.audit.sqli",
-      title: "Прямая SQL-инъекция",
-      severity: "error",
-      file: name || "database.py",
-      line: 24,
-      message: "Параметры пользователя напрямую подставляются в строку SQL-запроса через форматирование.",
-      code: "cursor.execute(f\"SELECT * FROM accounts WHERE user_id = '{user_id}'\")"
-    },
-    {
-      rule: "generic.secrets.security.hardcoded-key",
-      title: "Открытый секретный ключ в коде",
-      severity: "warning",
-      file: name || "config.py",
-      line: 8,
-      message: "Обнаружен приватный токен доступа. Рекомендуется использовать переменные окружения.",
-      code: "SECRET_KEY = \"AKIAIOSFODNN7EXAMPLE_SECRET_KEY_12345\""
-    },
-    {
-      rule: "python.lang.security.deserialization.pickle",
-      title: "Небезопасная десериализация",
-      severity: "info",
-      file: name || "utils.py",
-      line: 41,
-      message: "Использование небезопасных методов загрузки данных может привести к выполнению произвольного кода.",
-      code: "data = pickle.loads(raw_input_stream)"
-    }
-  ];
+const apiBase = "http://127.0.0.1:8000";
+let creepTimer = null;
+let pollTimer = null;
+let currentStage = 1;
+let currentPercent = 0;
+
+function stopTimers() {
+  clearInterval(creepTimer);
+  clearTimeout(pollTimer);
+  creepTimer = null;
+  pollTimer = null;
 }
 
-function startAnalysis(name) {
+function startCreep() {
+  currentStage = 1;
+  currentPercent = 0;
+  showProgress(0);
+  creepTimer = setInterval(function () {
+    const floor = (currentStage - 1) * 25;
+    const ceiling = currentStage * 25 - 2;
+    currentPercent = Math.min(Math.max(currentPercent, floor) + 0.4, ceiling);
+    showProgress(Math.floor(currentPercent));
+  }, 250);
+}
+
+function showError(message) {
+  scanStatus.textContent = message;
+  scanStatus.classList.add("error");
+  againBtn.classList.remove("hidden");
+}
+
+function finishScan(result) {
+  stopTimers();
+  showProgress(100);
+  scanStatus.textContent = "Проверка завершена";
+  report = result;
+  sessionStorage.setItem("xscanReport", JSON.stringify(report));
+  localStorage.setItem("xscanReport", JSON.stringify(report));
+  againBtn.classList.remove("hidden");
+  reportBtn.classList.remove("hidden");
+}
+
+function failScan(error) {
+  stopTimers();
+  showError(error.message === "Failed to fetch" ? "Сервер проверки недоступен" : error.message);
+}
+
+async function readJson(response) {
+  const result = await response.json().catch(function () {
+    return {};
+  });
+  if (!response.ok) {
+    throw new Error(typeof result.detail === "string" ? result.detail : "Не удалось выполнить проверку");
+  }
+  return result;
+}
+
+async function pollJob(jobId) {
+  try {
+    const job = await readJson(await fetch(apiBase + "/api/scan/status/" + jobId));
+    if (job.status === "done") {
+      finishScan(job.report);
+      return;
+    }
+    if (job.status === "error") {
+      throw new Error(job.error || "Не удалось выполнить проверку");
+    }
+    if (job.stage > currentStage) {
+      currentStage = job.stage;
+      currentPercent = Math.max(currentPercent, (currentStage - 1) * 25);
+    }
+    pollTimer = setTimeout(function () {
+      pollJob(jobId);
+    }, 1000);
+  } catch (error) {
+    failScan(error);
+  }
+}
+
+async function startAnalysis(name, request) {
   if (document.body.classList.contains("scanning")) {
     return;
   }
@@ -248,32 +295,39 @@ function startAnalysis(name) {
   document.body.classList.add("scanning");
   scanFile.textContent = name;
   scanStatus.textContent = "Идёт проверка";
+  scanStatus.classList.remove("error");
   report = null;
+  startCreep();
 
-  let percent = 0;
-  showProgress(percent);
-  const timer = setInterval(function () {
-    percent = percent + 1;
-    showProgress(percent);
-    if (percent === 100) {
-      clearInterval(timer);
-      scanStatus.textContent = "Проверка завершена";
-      report = {
-        target: name,
-        checkedAt: new Date().toISOString(),
-        status: "completed",
-        issues: generateIssues(name)
-      };
-      sessionStorage.setItem("xscanReport", JSON.stringify(report));
-      localStorage.setItem("xscanReport", JSON.stringify(report));
-      againBtn.classList.remove("hidden");
-      reportBtn.classList.remove("hidden");
-    }
-  }, 40);
+  try {
+    const started = await readJson(await request());
+    pollJob(started.jobId);
+  } catch (error) {
+    failScan(error);
+  }
+}
+
+function scanFileRequest(file) {
+  const form = new FormData();
+  form.append("file", file);
+  return function () {
+    return fetch(apiBase + "/api/scan/file", { method: "POST", body: form });
+  };
+}
+
+function scanGithubRequest(url) {
+  return function () {
+    return fetch(apiBase + "/api/scan/github", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: url })
+    });
+  };
 }
 
 againBtn.addEventListener("click", function () {
   scanView.classList.add("hidden");
+  scanStatus.classList.remove("error");
   document.body.classList.remove("scanning");
   clearFile();
   githubInput.value = "";

@@ -624,3 +624,139 @@ body.scanning .stage::before {
     transform: scale(1.04);
   }
 }
+
+.scan-status.error {
+  color: #ff5970;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+
+.scan:not(.hidden),
+.file-row:not(.hidden) {
+  animation: fade-up 0.5s ease both;
+}
+
+.scan-actions .btn:not(.hidden) {
+  animation: fade-up 0.45s ease both;
+}
+
+.btn {
+  transition: transform 0.15s ease, opacity 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.btn:not(:disabled):hover {
+  transform: translateY(-1px);
+}
+
+.btn:not(:disabled):active {
+  transform: translateY(0);
+}
+
+.log li {
+  transition: color 0.3s ease, opacity 0.3s ease;
+}
+
+@media (max-width: 900px) {
+  .page {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "head"
+      "stage"
+      "link"
+      "caption";
+    row-gap: 28px;
+    min-height: auto;
+    padding-top: 100px;
+  }
+
+  .head,
+  .scan {
+    text-align: center;
+  }
+
+  .lead {
+    margin-right: auto;
+    margin-left: auto;
+  }
+
+  .scan-actions {
+    justify-content: center;
+  }
+
+  .message {
+    position: static;
+    margin-top: 10px;
+    text-align: center;
+  }
+}
+
+@media (max-width: 520px) {
+  .header-inner,
+  .page {
+    padding-right: 20px;
+    padding-left: 20px;
+  }
+
+  .logo {
+    font-size: 26px;
+  }
+
+  .page {
+    padding-top: 92px;
+    padding-bottom: 32px;
+  }
+
+  .lead {
+    font-size: 15px;
+  }
+
+  .link-form {
+    flex-wrap: wrap;
+  }
+
+  .link-form input {
+    flex-basis: 100%;
+    padding: 10px 12px;
+  }
+
+  .link-form .btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .file-row {
+    flex-wrap: wrap;
+  }
+
+  .file-row .btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .scan-percent {
+    font-size: 64px;
+  }
+
+  .scan-actions .btn {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scan:not(.hidden),
+  .file-row:not(.hidden),
+  .scan-actions .btn:not(.hidden) {
+    animation: none;
+  }
+
+  .btn,
+  .log li {
+    transition: none;
+  }
+}
