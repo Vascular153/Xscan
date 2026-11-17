@@ -67,6 +67,7 @@ MAX_SECOND_PASS_ISSUES = 30
 SKIPPED_DIRS = {".git", "node_modules", "vendor", "venv", ".venv", "dist", "build", "__pycache__", "external"}
 CODE_EXT = {"py", "js", "java", "c", "h", "cpp", "hpp", "cs", "go", "php", "rs"}
 JOB_TTL = 3600
+SCAN_TIME_LIMIT = 300
 
 SEVERITY_MAP = {"ERROR": "error", "WARNING": "warning", "INFO": "info"}
 SEVERITY_ORDER = {"error": 0, "warning": 1, "info": 2}
@@ -319,14 +320,16 @@ def finalize(issues: list[dict]) -> list[dict]:
     ]
 
 
-def collect_sources(root: Path) -> dict[str, list[str]]:
+def collect_sources(root: Path) -> tuple[dict[str, list[str]], int]:
     candidates = []
+    total = 0
     for path in root.rglob("*"):
         if not path.is_file() or path.suffix.lstrip(".").lower() not in CODE_EXT:
             continue
         relative = path.relative_to(root)
         if any(part in SKIPPED_DIRS for part in relative.parts) or path.name.endswith(".min.js"):
             continue
+        total += 1
         try:
             size = path.stat().st_size
         except OSError:
@@ -343,13 +346,13 @@ def collect_sources(root: Path) -> dict[str, list[str]]:
         if lines:
             sources[relative] = lines
             used += size
-    return sources
+    return sources, total
 
 
-def second_pass(root: Path, existing: list[dict]) -> list[dict]:
-    sources = collect_sources(root)
+def second_pass(root: Path, existing: list[dict]) -> tuple[list[dict], int, int]:
+    sources, total = collect_sources(root)
     if not sources:
-        return []
+        return [], 0, total
     listing = "\n\n".join(
         f"=== FILE: {name}\n" + "\n".join(f"{number}: {line}" for number, line in enumerate(lines, 1))
         for name, lines in sources.items()
@@ -369,9 +372,9 @@ def second_pass(root: Path, existing: list[dict]) -> list[dict]:
     try:
         found = call_gemini(prompt, timeout=120, temperature=0)
     except (HTTPError, URLError, TimeoutError, KeyError, IndexError, ValueError, json.JSONDecodeError):
-        return []
+        return [], len(sources), total
     if not isinstance(found, list):
-        return []
+        return [], len(sources), total
     taken = {(issue["file"], issue["line"]) for issue in existing}
     added = []
     for item in found:
@@ -396,14 +399,15 @@ def second_pass(root: Path, existing: list[dict]) -> list[dict]:
         })
         if len(added) >= MAX_SECOND_PASS_ISSUES:
             break
-    return added
+    return added, len(sources), total
 
 
-def scan_directory(root: Path, progress) -> tuple[list[dict], bool]:
+def scan_directory(root: Path, progress) -> tuple[list[dict], bool, list[str]]:
     progress(2)
     results = run_semgrep(root)
     issues = build_issues(root, results)
     progress(3)
+    notes = []
     analyzed = True
     limited = issues[:MAX_ISSUES_FOR_GEMINI]
     rest = issues[MAX_ISSUES_FOR_GEMINI:]
@@ -412,10 +416,21 @@ def scan_directory(root: Path, progress) -> tuple[list[dict], bool]:
             limited = apply_verdicts(limited, ask_gemini(limited))
         except (HTTPError, URLError, TimeoutError, KeyError, IndexError, ValueError, json.JSONDecodeError):
             analyzed = False
+    if rest:
+        notes.append(
+            f"Gemini разобрал первые {MAX_ISSUES_FOR_GEMINI} находок из {len(issues)}, остальные показаны по данным Semgrep."
+        )
+    if not analyzed:
+        notes.append("Gemini не ответил, поэтому отчёт построен только по данным Semgrep.")
     confirmed = finalize(limited + rest)
-    extra = second_pass(root, confirmed)
+    progress(3)
+    extra, viewed, total = second_pass(root, confirmed)
+    if total > viewed:
+        notes.append(
+            f"Дополнительный просмотр Gemini охватил {viewed} из {total} файлов с кодом: слишком большие файлы и сверх лимита объёма пропущены."
+        )
     progress(4)
-    return finalize_all(confirmed + extra), analyzed
+    return finalize_all(confirmed + extra), analyzed, notes
 
 
 def finalize_all(issues: list[dict]) -> list[dict]:
@@ -423,12 +438,13 @@ def finalize_all(issues: list[dict]) -> list[dict]:
     return issues
 
 
-def make_report(target: str, issues: list[dict], analyzed: bool) -> dict:
+def make_report(target: str, issues: list[dict], analyzed: bool, notes: list[str]) -> dict:
     return {
         "target": target,
         "checkedAt": datetime.now(timezone.utc).isoformat(),
         "status": "completed",
         "aiReview": analyzed,
+        "notes": notes,
         "issues": issues,
     }
 
@@ -443,8 +459,8 @@ def scan_github_job(progress, owner: str, repository: str) -> dict:
         source.mkdir()
         unpack_archive(archive, source)
         archive.unlink()
-        issues, analyzed = scan_directory(find_scan_root(source), progress)
-        return make_report(f"{owner}/{repository}", issues, analyzed)
+        issues, analyzed, notes = scan_directory(find_scan_root(source), progress)
+        return make_report(f"{owner}/{repository}", issues, analyzed, notes)
     finally:
         shutil.rmtree(workdir, ignore_errors=True)
 
@@ -464,8 +480,8 @@ def scan_upload_job(progress, name: str, content: bytes) -> dict:
         else:
             (source / name).write_bytes(content)
             root = source
-        issues, analyzed = scan_directory(root, progress)
-        return make_report(name, issues, analyzed)
+        issues, analyzed, notes = scan_directory(root, progress)
+        return make_report(name, issues, analyzed, notes)
     finally:
         shutil.rmtree(workdir, ignore_errors=True)
 
@@ -475,7 +491,14 @@ JOBS_LOCK = threading.Lock()
 
 
 def run_job(job_id: str, function, *args) -> None:
+    started = time.time()
+
     def progress(stage: int) -> None:
+        if time.time() - started > SCAN_TIME_LIMIT:
+            raise HTTPException(
+                status_code=504,
+                detail="Проверка заняла слишком много времени. Загрузи проект поменьше или отдельные файлы.",
+            )
         with JOBS_LOCK:
             JOBS[job_id]["stage"] = stage
 
